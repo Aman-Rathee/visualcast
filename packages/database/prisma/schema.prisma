@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String
+  name     String?
+
+  sessions    Session[]
+  Participant Participant[]
+}
+
+model Session {
+  id        String  @id @default(uuid())
+  title     String?
+  createdBy String
+
+  creator      User          @relation(fields: [createdBy], references: [id])
+  participants Participant[]
+  recordings   Recording[]
+}
+
+model Participant {
+  id        String    @id @default(uuid())
+  sessionId String
+  userId    String?
+  guestName String?
+  role      Role
+  joinedAt  DateTime?
+  leftAt    DateTime?
+
+  session    Session     @relation(fields: [sessionId], references: [id])
+  user       User?       @relation(fields: [userId], references: [id])
+  recordings Recording[]
+}
+
+model Recording {
+  id            String        @id @default(uuid())
+  sessionId     String
+  participantId String
+  type          RecordingType
+  fileUrl       String
+  duration      Int?
+  createdAt     DateTime      @default(now())
+
+  session     Session          @relation(fields: [sessionId], references: [id])
+  participant Participant      @relation(fields: [participantId], references: [id])
+  chunks      RecordingChunk[]
+}
+
+model RecordingChunk {
+  id          String   @id @default(uuid())
+  recordingId String
+  chunkNumber Int
+  fileUrl     String
+  uploadedAt  DateTime @default(now())
+
+  recording Recording @relation(fields: [recordingId], references: [id])
+}
+
+enum Role {
+  host
+  guest
+}
+
+enum RecordingType {
+  audio
+  video
+}
